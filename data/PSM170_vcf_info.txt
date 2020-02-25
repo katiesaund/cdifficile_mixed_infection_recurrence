@@ -1,0 +1,1 @@
+PSM170__aln_mpileup_raw.vcf was copied from  /nfs/esnitkin/Project_Cdiff/Analysis/Propensity_paper/2019_05_14_PSM_variant_calling/PSM170_/PSM170__vcf_results/PSM170__aln_mpileup_raw.vcf
