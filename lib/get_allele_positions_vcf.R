@@ -34,10 +34,10 @@ sodA <- fix %>% filter(POS >= 1889811 & POS <= 1890515)
 tpi <- fix %>% filter(POS >= 3706953 & POS <= 3707696)
 
 # matrix with the gene, gene id, and sequence for each of the MLST genes 
-gene_key <- read.csv("/Users/baileygarb/Desktop/greatlakes_mount/Project_Cdiff/Analysis/mixed_infection_recurrence/2019-11-08_make_gene_keys/data/gene_key.csv")
+gene_key <- read.csv("/Users/baileygarb/Desktop/cdifficile_mixed_infection_recurrence/data/gene_key.csv")
 
 # reference genome
-cd_630 <- read.fasta("/Users/baileygarb/Desktop/greatlakes_mount/bin_group/variant_calling_bin/reference/CDIFF_630_ncbi/cdiff_630.fasta", as.string = TRUE, seqonly = TRUE)
+cd_630 <- read.fasta("/Users/baileygarb/Desktop/cdifficile_mixed_infection_recurrence/data/cdiff_630.fasta", as.string = TRUE, seqonly = TRUE)
 cd_630 <-  unlist(cd_630) %>% toString()
 
 # mlst profiles that list the sequence of genes ID's the define an MLST 
