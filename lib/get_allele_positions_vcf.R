@@ -16,7 +16,7 @@ library(tidyverse)
 library(seqinr)
 
 # load test sample which should be a population sample or a mized sample. The sample must be in vcf formatting. Vcf is a file with snp information in comparision to the referene genome CD630. 
-PSM170 <- read.vcfR("../data/PSM170__aln_mpileup_raw.vcf")
+PSM170 <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
 
 # fix is just the part of the VCF file that we need which is the information about the variants and not the information about how it was sequenced. 
 fix <- as.data.frame(getFIX(PSM170))
@@ -34,14 +34,14 @@ sodA <- fix %>% filter(POS >= 1889811 & POS <= 1890515)
 tpi <- fix %>% filter(POS >= 3706953 & POS <= 3707696)
 
 # matrix with the gene, gene id, and sequence for each of the MLST genes 
-gene_key <- read.csv("/Users/baileygarb/Desktop/cdifficile_mixed_infection_recurrence/data/gene_key.csv")
+gene_key <- read.csv("data/gene_key.csv")
 
 # reference genome
-cd_630 <- read.fasta("/Users/baileygarb/Desktop/cdifficile_mixed_infection_recurrence/data/cdiff_630.fasta", as.string = TRUE, seqonly = TRUE)
+cd_630 <- read.fasta("data/cdiff_630.fasta", as.string = TRUE, seqonly = TRUE)
 cd_630 <-  unlist(cd_630) %>% toString()
 
 # mlst profiles that list the sequence of genes ID's the define an MLST 
-mlst_profiles <- read_tsv("/Users/baileygarb/Desktop/greatlakes_mount/Project_Cdiff/Analysis/mixed_infection_recurrence/2019-11-08_make_gene_keys/data/mlst_profiles.txt")
+mlst_profiles <- read_tsv("data/mlst_profiles.txt")
 
 # establish the cd630 mlst genes knowing that cd630 is mlst 54 
 mlst_profiles_cd630 <- mlst_profiles %>% filter(ST == 54)
