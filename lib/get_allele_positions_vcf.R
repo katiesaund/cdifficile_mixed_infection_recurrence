@@ -1,6 +1,6 @@
 # Bailey Garb 
 # 19-11-15 
-
+#test comment
 ### Reminders ###
 # The mlst definition of the gene is not the whole genome
 # MLST is defines by a unique set of 7 gene ID 
