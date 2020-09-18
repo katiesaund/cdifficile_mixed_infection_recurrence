@@ -1,6 +1,5 @@
 # Bailey Garb 
 # 19-11-15 
-#test comment
 ### Reminders ###
 # The mlst definition of the gene is not the whole genome
 # MLST is defines by a unique set of 7 gene ID 
@@ -25,13 +24,22 @@ fix$POS <- as.numeric(as.character(fix$POS))
 # establish the mlst variance in the sample compared to cd630 
 # these have a list of all the variation between the gene for the test sample and cd630 and the position in the genome where that happens. 
 # the numbers denote the positions in the genome where the NCBI defines the genes in Cdif. Example adk: https://www.ncbi.nlm.nih.gov/nuccore/NC_009089.1?report=fasta&from=113228&to=113878
-adk <- fix %>% filter(POS >= 113228 & POS <= 113878)
+adk_t <- fix %>% filter(POS >= 113228 & POS <= 113878)
 atpA <- fix %>% filter(POS >= 3432464 & POS <= 3434242)
 dxr <- fix %>% filter(POS >=  2466836 & POS <= 2467990)
 glyA <- fix %>% filter(POS >= 3162737 & POS <= 3163981)
 recA <- fix %>% filter(POS >= 1539910 & POS <= 1540956)
 sodA <- fix %>% filter(POS >= 1889811 & POS <= 1890515)
 tpi <- fix %>% filter(POS >= 3706953 & POS <= 3707696)
+
+# Define starting positions for MLST genes 
+adk_pos <- 113228
+atpA_pos <- 3432464
+dxr_pos <- 2466836
+glyA_pos <- 3162737
+recA_pos <- 1539910
+sodA_pos <- 1889811
+tpi_pos <- 3706953
 
 # matrix with the gene, gene id, and sequence for each of the MLST genes 
 gene_key <- read.csv("data/gene_key.csv")
@@ -84,9 +92,37 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
 #the result is a long matrix of a lot of positions and gene_ids that define the possible variations from cd630 that would identify a gene_ID
 
 # cutoff is a matrix of the positions in the gene key where the genes switch from one to the next
-cutoff <- gene_key[match(unique(gene_key$gene), gene_key$gene),1]
-
+cutoff <- gene_key[match(unique(gene_key$gene), gene_key$gene),1] %>% t()
+cutoff[length(cutoff)] <- nrow(gene_key)
+colnames(cutoff) <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi')
+cutoff <- cutoff %>% as.data.frame()
 ## the numbers added after the variant_matrix is made is used to give the position in the whole genome and now just in reference to the gene. 
+genes <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi')
+gene_pos <-list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269), tibble(270:319), tibble(320:390), tibble(391:473))
+positions_df <- tibble(genes, gene_pos)
+
+make_variant_matrix <- function(gene_name)
+{
+  variant_matrix <- NULL 
+  for(i in positions_df$gene_pos[positions_df$genes==gene_name]){
+      temp <- toString(parse(paste("cd_630_",gene_name, sep = ""))$sequence)
+      current <- list.string.diff(temp, toString(gene_key[i,4])) %>% as.matrix()
+      current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
+      variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
+  }
+  
+  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + as.name(paste(gene_name, "_pos",sep = ""))
+  colnames(variant_matrix)[4] <- "gene_ID"
+  
+  filter(variant_matrix, position == as.numeric(as.character(gene_name$POS)))
+  filter(variant_matrix, cd630 == as.character(gene_name$REF), mlst == as.character(gene_name$ALT))
+  as.name(paste(gene_name, "_variant_matrix",sep = "")) <- variant_matrix
+}
+
+
+
+
+make_variant_matrix("adk")
 
 #adk
 adk_variant_matrix <- NULL
@@ -96,7 +132,7 @@ for(i in cutoff[1]:(cutoff[2]-1)){
   adk_variant_matrix <- rbind(adk_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
 
-adk_variant_matrix$position <- as.vector(as.numeric(as.character(adk_variant_matrix$position))) + 113228
+adk_variant_matrix$position <- as.vector(as.numeric(as.character(adk_variant_matrix$position))) + adk_pos
 colnames(adk_variant_matrix)[4] <- "gene_ID"
 
 filter(adk_variant_matrix, position == as.numeric(as.character(adk$POS)))
@@ -110,7 +146,7 @@ for(i in cutoff[2]:(cutoff[3]-1)){
   atpA_variant_matrix <- rbind(atpA_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
 
-atpA_variant_matrix$position <- as.vector(as.numeric(as.character(atpA_variant_matrix$position))) + 3432464
+atpA_variant_matrix$position <- as.vector(as.numeric(as.character(atpA_variant_matrix$position))) + atpA_pos
 colnames(atpA_variant_matrix)[4] <- "gene_ID"
 
 #dxr
@@ -121,7 +157,7 @@ for(i in cutoff[3]:(cutoff[4]-1)){
   dxr_variant_matrix <- rbind(dxr_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
 
-dxr_variant_matrix$position <- as.vector(as.numeric(as.character(dxr_variant_matrix$position))) + 2466836
+dxr_variant_matrix$position <- as.vector(as.numeric(as.character(dxr_variant_matrix$position))) + dxr_pos
 colnames(dxr_variant_matrix)[4] <- "gene_ID"
 
 #glyA
@@ -133,7 +169,7 @@ for(i in cutoff[4]:(cutoff[5]-1)){
   glyA_variant_matrix <- rbind(glyA_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
 
-glyA_variant_matrix$position <- as.vector(as.numeric(as.character(glyA_variant_matrix$position))) + 3162737
+glyA_variant_matrix$position <- as.vector(as.numeric(as.character(glyA_variant_matrix$position))) + glyA_pos
 colnames(glyA_variant_matrix)[4] <- "gene_ID"
 
 #recA
@@ -145,7 +181,7 @@ for(i in cutoff[5]:(cutoff[6]-1)){
   recA_variant_matrix <- rbind(recA_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
 
-recA_variant_matrix$position <- as.vector(as.numeric(as.character(recA_variant_matrix$position))) + 1539910
+recA_variant_matrix$position <- as.vector(as.numeric(as.character(recA_variant_matrix$position))) + recA_pos
 colnames(recA_variant_matrix)[4] <- "gene_ID"
 
 
@@ -211,7 +247,7 @@ for(i in 386:(cutoff[7]-1)){
   current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
   sodA_variant_matrix <- rbind(sodA_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
-sodA_variant_matrix$position <- as.vector(as.numeric(as.character(sodA_variant_matrix$position))) + 1889811
+sodA_variant_matrix$position <- as.vector(as.numeric(as.character(sodA_variant_matrix$position))) + sodA_pos
 colnames(sodA_variant_matrix)[4] <- "gene_ID"
 
 #fill in gaps 
@@ -228,6 +264,6 @@ for(i in cutoff[7]:nrow(gene_key)){
   tpi_variant_matrix <- rbind(tpi_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
 
-tpi_variant_matrix$position <- as.vector(as.numeric(as.character(tpi_variant_matrix$position))) + 3706953
+tpi_variant_matrix$position <- as.vector(as.numeric(as.character(tpi_variant_matrix$position))) + tpi_pos
 colnames(tpi_variant_matrix)[4] <- "gene_ID"
 
