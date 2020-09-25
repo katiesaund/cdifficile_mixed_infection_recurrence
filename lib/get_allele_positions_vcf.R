@@ -41,7 +41,17 @@ recA_pos <- 1539910
 sodA_pos <- 1889811
 tpi_pos <- 3706953
 
-# matrix with the gene, gene id, and sequence for each of the MLST genes 
+pos_df <- as.data.frame(matrix(0, nrow = 7, ncol = 2))
+pos_df[, 1] <- c("adk", "atpA", "dxr", "glyA", "recA", "sodA", "tpi")
+pos_df[, 2] <- c(adk_pos, 
+                  atpA_pos, 
+                  dxr_pos, 
+                  glyA_pos, 
+                  recA_pos, 
+                  sodA_pos, 
+                  tpi_pos) 
+colnames(pos_df) <- c("gene_id", "gene_pos")
+ # matrix with the gene, gene id, and sequence for each of the MLST genes 
 gene_key <- read.csv("data/gene_key.csv")
 
 # reference genome
@@ -101,7 +111,7 @@ genes <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi')
 gene_pos <-list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269), tibble(270:319), tibble(320:390), tibble(391:473))
 positions_df <- tibble(genes, gene_pos)
 
-make_variant_matrix <- function(gene_name, g_key)
+make_variant_matrix <- function(gene_name, g_key, gene_pos_df)
 {
   variant_matrix <- NULL 
   for(i in positions_df$gene_pos[positions_df$genes==gene_name] %>% unlist() %>% unname()){
@@ -111,16 +121,15 @@ make_variant_matrix <- function(gene_name, g_key)
       variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
   }
 
-  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + as.name(paste(gene_name, "_pos",sep = ""))
+  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + 
+    gene_pos_df %>% filter(gene_id == gene_name) %>% pull(gene_pos) 
+
   colnames(variant_matrix)[4] <- "gene_ID"
-  
-  filter(variant_matrix, position == as.numeric(as.character(gene_name$POS)))
-  filter(variant_matrix, cd630 == as.character(gene_name$REF), mlst == as.character(gene_name$ALT))
-  as.name(paste(gene_name, "_variant_matrix",sep = "")) <- variant_matrix
+  return(variant_matrix)
 }
 
-make_variant_matrix("adk", gene_key)
-
+new_adk <- make_variant_matrix("adk", gene_key, pos_df)
+# compare new_adk to nonfunctionalized version to check if worked correctly
 #adk
 adk_variant_matrix <- NULL
 for(i in cutoff[1]:(cutoff[2]-1)){
