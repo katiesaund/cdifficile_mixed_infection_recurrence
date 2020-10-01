@@ -1,6 +1,7 @@
 # Bailey Garb 
 # 19-11-15 
 ### Reminders ###
+# PSM
 # The mlst definition of the gene is not the whole genome
 # MLST is defines by a unique set of 7 gene ID 
 # A gene ID is a specific unique squence for one of the seven MLST genes 
@@ -44,16 +45,16 @@ tpi_pos <- 3706953
 
 #Make positions df with make of gene corresponding to the starting position of the gene in cd630 genome.
 #gene_id is the gene name and gene_pos is the starting position. 
-pos_df <- as.data.frame(matrix(0, nrow = 7, ncol = 2))
-pos_df[, 1] <- c("adk", "atpA", "dxr", "glyA", "recA", "sodA", "tpi")
-pos_df[, 2] <- c(adk_pos, 
+genomic_pos_df <- as.data.frame(matrix(0, nrow = 7, ncol = 2))
+genomic_pos_df[, 1] <- c("adk", "atpA", "dxr", "glyA", "recA", "sodA", "tpi")
+genomic_pos_df[, 2] <- c(adk_pos, 
                   atpA_pos, 
                   dxr_pos, 
                   glyA_pos, 
                   recA_pos, 
                   sodA_pos, 
                   tpi_pos) 
-colnames(pos_df) <- c("gene_id", "gene_pos")
+colnames(genomic_pos_df) <- c("gene_id", "gene_pos")
 
 # matrix with the gene, gene id, and sequence for each of the MLST genes 
 gene_key <- read.csv("data/gene_key.csv")
@@ -107,20 +108,21 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
 #the result is a long matrix of a lot of positions and gene_ids that define the possible variations from cd630 that would identify a gene_ID
 
 # cutoff is a matrix of the positions in the gene key where the genes switch from one to the next
-cutoff <- gene_key[match(unique(gene_key$gene), gene_key$gene),1] %>% t()
+cutoff <- gene_key[match(unique(gene_key$gene), gene_key$gene),1] %>% t() 
 cutoff[length(cutoff)+1] <- nrow(gene_key)
-colnames(cutoff) <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi')
-cutoff <- cutoff %>% as.data.frame()
+cutoff <- cutoff %>% as.matrix()
+rownames(cutoff) <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi', "end")
+cutoff <- cutoff %>% as.data.frame() %>% t()
 ## the numbers added after the variant_matrix is made is used to give the position in the whole genome and now just in reference to the gene. 
 genes <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi')
 gene_pos <-list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269), tibble(270:319), tibble(320:390), tibble(391:473))
 positions_df <- tibble(genes, gene_pos)
 
-make_variant_matrix <- function(gene_name, g_key, gene_pos_df)
+make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
 {
   variant_matrix <- NULL 
   # for i in the length of each mlst gene
-  for(i in positions_df$gene_pos[positions_df$genes==gene_name] %>% unlist() %>% unname()){
+  for(i in gene_pos_df$gene_pos[gene_pos_df$genes==gene_name] %>% unlist() %>% unname()){
       #get sequence for cd630 gene 
       temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
       # get string difference between cd630 gene and test sequence 
@@ -130,25 +132,18 @@ make_variant_matrix <- function(gene_name, g_key, gene_pos_df)
       # add current to variant matrix
       variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
   }
-  # correct position by adding the gene position to the position of the variant within the gene. Filter on gene id = gene name
-  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + 
-    gene_pos_df %>% filter(gene_id == gene_name) %>% pull(gene_pos) 
+  print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
+  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos)
   colnames(variant_matrix)[4] <- "gene_ID"
   return(variant_matrix)
 }
 
-new_adk <- make_variant_matrix("adk", gene_key, pos_df)
-
-# something wrong 
-new_atpA <- make_variant_matrix("aptA", gene_key, pos_df)
-
-new_dxr <- make_variant_matrix("dxr", gene_key, pos_df)
-
-new_glyA <- make_variant_matrix("glyA", gene_key, pos_df)
-
-new_recA <- make_variant_matrix("recA", gene_key, pos_df)
-
-new_tpi <- make_variant_matrix("tpi", gene_key, pos_df)
+new_adk <- make_variant_matrix("adk", gene_key, positions_df, genomic_pos_df)
+new_atpA <- make_variant_matrix("atpA", gene_key, positions_df, genomic_pos_df)
+new_dxr <- make_variant_matrix("dxr", gene_key, positions_df, genomic_pos_df)
+new_glyA <- make_variant_matrix("glyA", gene_key, positions_df, genomic_pos_df)
+new_recA <- make_variant_matrix("recA", gene_key, positions_df, genomic_pos_df)
+new_tpi <- make_variant_matrix("tpi", gene_key, positions_df, genomic_pos_df)
 
 
 #atpA
