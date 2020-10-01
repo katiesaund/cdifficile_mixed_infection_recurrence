@@ -101,17 +101,18 @@ genes <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi')
 gene_pos <-list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269), tibble(270:319), tibble(320:390), tibble(391:473))
 positions_df <- tibble(genes, gene_pos)
 
-<<<<<<< HEAD
-make_variant_matrix <- function(gene_name, gene_key)
-{
-  variant_matrix <- NULL 
-  for(i in positions_df$gene_pos[positions_df$genes==gene_name]){
-    print(i)
-      temp <- toString(eval(as.name(paste('cd_630_',gene_name, sep = '')))$sequence)
-      print(temp)
-      current <- list.string.diff(temp, toString(gene_key[i,4])) %>% as.matrix()
-      current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
-=======
+#<<<<<<< HEAD
+#make_variant_matrix <- function(gene_name, gene_key)
+#{
+#  variant_matrix <- NULL 
+#  for(i in positions_df$gene_pos[positions_df$genes==gene_name]){
+#    print(i)
+#      temp <- toString(eval(as.name(paste('cd_630_',gene_name, sep = '')))$sequence)
+#      print(temp)
+#      current <- list.string.diff(temp, toString(gene_key[i,4])) %>% as.matrix()
+#      current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
+#  }}
+#=======
 make_variant_matrix <- function(gene_name, g_key)
 {
   variant_matrix <- NULL 
@@ -119,10 +120,9 @@ make_variant_matrix <- function(gene_name, g_key)
       temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
       current <- list.string.diff(toString(g_key[i, 4]), toString(temp)) %>% as.matrix()
       current <- cbind(current, as.matrix(rep(g_key$ID[i], nrow(current))))
->>>>>>> 32b4498a09cae0b0f7204562d6a91519cc4555fb
       variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
   }
-
+print(variant_matrix$position)
   variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + as.name(paste(gene_name, "_pos",sep = ""))
   colnames(variant_matrix)[4] <- "gene_ID"
   
