@@ -17,8 +17,8 @@ library(tidyverse)
 library(seqinr)
 
 # load test sample which should be a population sample or a mized sample. The sample must be in vcf formatting. Vcf is a file with snp information in comparision to the referene genome CD630. 
-PSM170 <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
-
+#PSM170 <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
+PSM001 <- read.vcfR("../greatlakes_mount/Project_Cdiff/Analysis/Propensity_paper/2019_05_14_PSM_variant_calling/PSM001_/PSM001__vcf_results/PSM001__aln_mpileup_raw.vcf")
 # fix is just the part of the VCF file that we need which is the information about the variants and not the information about how it was sequenced. 
 fix <- as.data.frame(getFIX(PSM170))
 fix$POS <- as.numeric(as.character(fix$POS))
