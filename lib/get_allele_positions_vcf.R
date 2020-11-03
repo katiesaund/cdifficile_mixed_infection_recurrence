@@ -17,10 +17,10 @@ library(tidyverse)
 library(seqinr)
 
 # load test sample which should be a population sample or a mized sample. The sample must be in vcf formatting. Vcf is a file with snp information in comparision to the referene genome CD630. 
-#PSM170 <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
-PSM001 <- read.vcfR("../greatlakes_mount/Project_Cdiff/Analysis/Propensity_paper/2019_05_14_PSM_variant_calling/PSM001_/PSM001__vcf_results/PSM001__aln_mpileup_raw.vcf")
+PSM170 <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
+PSM001 <- read.vcfR("data/PSM001__aln_mpileup_raw.vcf")
 # fix is just the part of the VCF file that we need which is the information about the variants and not the information about how it was sequenced. 
-fix <- as.data.frame(getFIX(PSM170))
+fix <- as.data.frame(getFIX(PSM001))
 fix$POS <- as.numeric(as.character(fix$POS))
 
 # establish the mlst variance in the sample compared to cd630 
@@ -132,7 +132,7 @@ make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
       # add current to variant matrix
       variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
   }
-  print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
+  #print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
   variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos)
   colnames(variant_matrix)[4] <- "gene_ID"
   return(variant_matrix)
@@ -144,19 +144,6 @@ new_dxr <- make_variant_matrix("dxr", gene_key, positions_df, genomic_pos_df)
 new_glyA <- make_variant_matrix("glyA", gene_key, positions_df, genomic_pos_df)
 new_recA <- make_variant_matrix("recA", gene_key, positions_df, genomic_pos_df)
 new_tpi <- make_variant_matrix("tpi", gene_key, positions_df, genomic_pos_df)
-
-
-#atpA
-atpA_variant_matrix <- NULL
-for(i in cutoff[[2]]:(cutoff[[3]]-1)){
-  current <- list.string.diff(toString(cd_630_atpA$sequence), toString(gene_key[i,4])) %>% as.matrix()
-  current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
-  atpA_variant_matrix <- rbind(atpA_variant_matrix, as.matrix(current)) %>% as.data.frame()
-}
-
-atpA_variant_matrix$position <- as.vector(as.numeric(as.character(atpA_variant_matrix$position))) + atpA_pos
-colnames(atpA_variant_matrix)[4] <- "gene_ID"
-
 
 #sodA
 ## issue, number 340 has a different length 
@@ -206,14 +193,14 @@ for(i in 341:384){
 }
 
 ### 385 issue 
-#sequence 385 is shorted than cd630 
+#sequence 385 is shorter than cd630 
 cd_630_shorted_385 <- "gatgcacttgaaccttatatagataaagaaacaatga
 aactgcatcatgataagcattatcaagcttatgttgataaattaaatgctgctcttgaaaaatat
 cctgagctttataattattctttatgtgaattattgcaaaatttagattctttacctaaagatatt
 gctacaactgtaagaaataatgcaggtggagcttataatcataaattcttttttgatataatgacgcc
 agaaaaaaccataccttctgaatctttaaaagaagctattgatagagactttggttcttttgaaaaat
 ttaagcaagagttccaaaaatctgctttagatgtctttggttctggttgggcttggcttgtagctacta
-aagatgggaaattatctattatgactactccaaatcaggatagccctgtaagtaaaaacctaactcctataatagg"
+aagatgggaaattatctattatgactactccaaatcaggatagccctgtaagtaaaaacctaactcctat"
 current <- list.string.diff(toString(cd_630_shorted_385), toString(gene_key[385,4])) %>% as.matrix()
 gene_id <- as.matrix(rep(gene_key$ID[385], nrow(current)))
 current <- cbind(current, gene_id)
@@ -240,64 +227,4 @@ sodA_gene_key$length = as.numeric(sodA_gene_key$length)
 sodA_gaps <- filter(sodA_gene_key, length == 449)
 
 
-
-#---------------------------- OLD STUFF --------------------
-
-#adk
-adk_variant_matrix <- NULL
-for(i in cutoff[[1]]:(cutoff[[2]]-1)){
-  current <- list.string.diff(toString(cd_630_adk$sequence), toString(gene_key[i,4])) %>% as.matrix()
-  current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
-  adk_variant_matrix <- rbind(adk_variant_matrix, as.matrix(current)) %>% as.data.frame()
-}
-
-adk_variant_matrix$position <- as.vector(as.numeric(as.character(adk_variant_matrix$position))) + adk_pos
-colnames(adk_variant_matrix)[4] <- "gene_ID"
-
-#dxr
-dxr_variant_matrix <- NULL
-for(i in cutoff[[3]]:(cutoff[[4]]-1)){
-  current <- list.string.diff(toString(cd_630_dxr$sequence), toString(gene_key[i,4])) %>% as.matrix()
-  current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
-  dxr_variant_matrix <- rbind(dxr_variant_matrix, as.matrix(current)) %>% as.data.frame()
-}
-
-dxr_variant_matrix$position <- as.vector(as.numeric(as.character(dxr_variant_matrix$position))) + dxr_pos
-colnames(dxr_variant_matrix)[4] <- "gene_ID"
-
-#glyA
-
-glyA_variant_matrix <- NULL
-for(i in cutoff[[4]]:(cutoff[[5]]-1)){
-  current <- list.string.diff(toString(cd_630_glyA$sequence), toString(gene_key[i,4])) %>% as.matrix()
-  current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
-  glyA_variant_matrix <- rbind(glyA_variant_matrix, as.matrix(current)) %>% as.data.frame()
-}
-
-glyA_variant_matrix$position <- as.vector(as.numeric(as.character(glyA_variant_matrix$position))) + glyA_pos
-colnames(glyA_variant_matrix)[4] <- "gene_ID"
-
-#recA
-
-recA_variant_matrix <- NULL
-for(i in cutoff[[5]]:(cutoff[[6]]-1)){
-  current <- list.string.diff(toString(cd_630_recA$sequence), toString(gene_key[i,4])) %>% as.matrix()
-  current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
-  recA_variant_matrix <- rbind(recA_variant_matrix, as.matrix(current)) %>% as.data.frame()
-}
-
-recA_variant_matrix$position <- as.vector(as.numeric(as.character(recA_variant_matrix$position))) + recA_pos
-colnames(recA_variant_matrix)[4] <- "gene_ID"
-
-#tpi
-tpi_variant_matrix <- NULL
-for(i in cutoff[[7]]:cutoff[[8]]){
-  current <- list.string.diff(toString(cd_630_tpi$sequence), toString(gene_key[i,4])) %>% as.matrix()
-  current <- cbind(current, as.matrix(rep(gene_key$ID[i], nrow(current))))
-  tpi_variant_matrix <- rbind(tpi_variant_matrix, as.matrix(current)) %>% as.data.frame()
-}
-
-
-tpi_variant_matrix$position <- as.vector(as.numeric(as.character(tpi_variant_matrix$position))) + tpi_pos
-colnames(tpi_variant_matrix)[4] <- "gene_ID"
 
