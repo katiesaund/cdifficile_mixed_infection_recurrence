@@ -20,13 +20,13 @@ library(seqinr)
 PSM170 <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
 PSM001 <- read.vcfR("data/PSM001__aln_mpileup_raw.vcf")
 # fix is just the part of the VCF file that we need which is the information about the variants and not the information about how it was sequenced. 
-fix <- as.data.frame(getFIX(PSM001))
+fix <- as.data.frame(getFIX(PSM170))
 fix$POS <- as.numeric(as.character(fix$POS))
 
 # establish the mlst variance in the sample compared to cd630 
 # these have a list of all the variation between the gene for the test sample and cd630 and the position in the genome where that happens. 
 # the numbers denote the positions in the genome where the NCBI defines the genes in Cdif. Example adk: https://www.ncbi.nlm.nih.gov/nuccore/NC_009089.1?report=fasta&from=113228&to=113878
-adk_t <- fix %>% filter(POS >= 113228 & POS <= 113878)
+adk <- fix %>% filter(POS >= 113228 & POS <= 113878)
 atpA <- fix %>% filter(POS >= 3432464 & POS <= 3434242)
 dxr <- fix %>% filter(POS >=  2466836 & POS <= 2467990)
 glyA <- fix %>% filter(POS >= 3162737 & POS <= 3163981)
@@ -119,24 +119,24 @@ gene_pos <-list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269), 
 positions_df <- tibble(genes, gene_pos)
 
 make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
-{
-  variant_matrix <- NULL 
-  # for i in the length of each mlst gene
-  for(i in gene_pos_df$gene_pos[gene_pos_df$genes==gene_name] %>% unlist() %>% unname()){
-      #get sequence for cd630 gene 
-      temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
-      # get string difference between cd630 gene and test sequence 
-      current <- list.string.diff(toString(temp), toString(g_key[i, 4])) %>% as.matrix()
-      # add gene key information to the difference in current
-      current <- cbind(current, as.matrix(rep(g_key$ID[i], nrow(current))))
-      # add current to variant matrix
-      variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
+  {
+    variant_matrix <- NULL 
+    # for i in the length of each mlst gene
+    for(i in gene_pos_df$gene_pos[gene_pos_df$genes==gene_name] %>% unlist() %>% unname()){
+        #get sequence for cd630 gene 
+     #### THIS IS THE ISSUE ###   temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
+        # get string difference between cd630 gene and test sequence 
+        current <- list.string.diff(toString(temp), toString(g_key[i, 4])) %>% as.matrix()
+        # add gene key information to the difference in current
+        current <- cbind(current, as.matrix(rep(g_key$ID[i], nrow(current))))
+        # add current to variant matrix
+        variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
+    }
+    #print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
+    variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos)
+    colnames(variant_matrix)[4] <- "gene_ID"
+    return(variant_matrix)
   }
-  #print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
-  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos)
-  colnames(variant_matrix)[4] <- "gene_ID"
-  return(variant_matrix)
-}
 
 new_adk <- make_variant_matrix("adk", gene_key, positions_df, genomic_pos_df)
 new_atpA <- make_variant_matrix("atpA", gene_key, positions_df, genomic_pos_df)
@@ -187,20 +187,13 @@ sodA_variant_matrix <- rbind(sodA_variant_matrix, as.matrix(current)) %>% as.dat
 for(i in 341:384){
   current <- list.string.diff(toString(cd_630_sodA$sequence), toString(gene_key[i,4])) %>% as.matrix()
   gene_id <- as.matrix(rep(gene_key$ID[i], nrow(current)))
-  print(gene_id)
   current <- cbind(current, gene_id)
   sodA_variant_matrix <- rbind(sodA_variant_matrix, as.matrix(current)) %>% as.data.frame()
 }
 
 ### 385 issue 
 #sequence 385 is shorter than cd630 
-cd_630_shorted_385 <- "gatgcacttgaaccttatatagataaagaaacaatga
-aactgcatcatgataagcattatcaagcttatgttgataaattaaatgctgctcttgaaaaatat
-cctgagctttataattattctttatgtgaattattgcaaaatttagattctttacctaaagatatt
-gctacaactgtaagaaataatgcaggtggagcttataatcataaattcttttttgatataatgacgcc
-agaaaaaaccataccttctgaatctttaaaagaagctattgatagagactttggttcttttgaaaaat
-ttaagcaagagttccaaaaatctgctttagatgtctttggttctggttgggcttggcttgtagctacta
-aagatgggaaattatctattatgactactccaaatcaggatagccctgtaagtaaaaacctaactcctat"
+cd_630_shorted_385 <- cd_630_sodA$sequence %>% substring(1, str_length(cd_630_sodA$sequence)-1)
 current <- list.string.diff(toString(cd_630_shorted_385), toString(gene_key[385,4])) %>% as.matrix()
 gene_id <- as.matrix(rep(gene_key$ID[385], nrow(current)))
 current <- cbind(current, gene_id)
