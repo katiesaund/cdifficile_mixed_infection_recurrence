@@ -12,134 +12,61 @@
 # Next steps: write a function that gives  gene_ID numbers that are possible. The same gene_ID as CD630 if variant isn't found or there are no variants. It should work for all the genes and not 7 versions of the function. 
 
 ### Set up  ### 
-library(vcfR)
-library(tidyverse)
-library(seqinr)
+source("lib/functions_lib.R")
+source("lib/save_CD630_mlst_gene_sequences.R")
 
 # load test sample which should be a population sample or a mixed sample. The sample must be in vcf formatting. Vcf is a file with snp information in comparision to the referene genome CD630. 
-PSM170 <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
-PSM001 <- read.vcfR("data/PSM001__aln_mpileup_raw.vcf")
+
+# PSM170 is now called sample_vcf
+sample_vcf <- read.vcfR("data/PSM170__aln_mpileup_raw.vcf")
+# PSM001 <- read.vcfR("data/PSM001__aln_mpileup_raw.vcf")
 # fix is just the part of the VCF file that we need which is the information about the variants and not the information about how it was sequenced. 
-fix <- as.data.frame(getFIX(PSM170))
-fix$POS <- as.numeric(as.character(fix$POS))
+# Fix is now called sample_variant_df
+sample_variant_df <- as.data.frame(getFIX(sample_vcf))
+sample_variant_df$POS <- as.numeric(as.character(sample_variant_df$POS))
 
 # establish the mlst variance in the sample compared to cd630 
 # these have a list of all the variation between the gene for the test sample and cd630 and the position in the genome where that happens. 
 # the numbers denote the positions in the genome where the NCBI defines the genes in Cdif. Example adk: https://www.ncbi.nlm.nih.gov/nuccore/NC_009089.1?report=fasta&from=113228&to=113878
-adk <- fix %>% filter(POS >= 113228 & POS <= 113878)
-atpA <- fix %>% filter(POS >= 3432464 & POS <= 3434242)
-dxr <- fix %>% filter(POS >=  2466836 & POS <= 2467990)
-glyA <- fix %>% filter(POS >= 3162737 & POS <= 3163981)
-recA <- fix %>% filter(POS >= 1539910 & POS <= 1540956)
-sodA <- fix %>% filter(POS >= 1889811 & POS <= 1890515)
-tpi <- fix %>% filter(POS >= 3706953 & POS <= 3707696)
+sample_adk <- sample_variant_df %>% filter(POS >= 113228 & POS <= 113878)
+sample_atpA <- sample_variant_df %>% filter(POS >= 3432464 & POS <= 3434242)
+sample_dxr <- sample_variant_df %>% filter(POS >=  2466836 & POS <= 2467990)
+sample_glyA <- sample_variant_df %>% filter(POS >= 3162737 & POS <= 3163981)
+sample_recA <- sample_variant_df %>% filter(POS >= 1539910 & POS <= 1540956)
+sample_sodA <- sample_variant_df %>% filter(POS >= 1889811 & POS <= 1890515)
+sample_tpi <- sample_variant_df %>% filter(POS >= 3706953 & POS <= 3707696)
 
-# Define starting positions for MLST genes 
-adk_pos <- 113228
-atpA_pos <- 3432464
-dxr_pos <- 2466836
-glyA_pos <- 3162737
-recA_pos <- 1539910
-sodA_pos <- 1889811
-tpi_pos <- 3706953
-
-#Make positions df with make of gene corresponding to the starting position of the gene in cd630 genome.
-#gene_id is the gene name and gene_pos is the starting position. 
-genomic_pos_df <- as.data.frame(matrix(0, nrow = 7, ncol = 2))
-genomic_pos_df[, 1] <- c("adk", "atpA", "dxr", "glyA", "recA", "sodA", "tpi")
-genomic_pos_df[, 2] <- c(adk_pos, 
-                  atpA_pos, 
-                  dxr_pos, 
-                  glyA_pos, 
-                  recA_pos, 
-                  sodA_pos, 
-                  tpi_pos) 
-colnames(genomic_pos_df) <- c("gene_id", "gene_pos")
 
 # matrix with the gene, gene id, and sequence for each of the MLST genes 
 gene_key <- read.csv("data/gene_key.csv")
+genomic_pos_df <- read.csv("data/genomic_pos.csv")
 
 # reference genome
 cd_630 <- read.fasta("data/cdiff_630.fasta", as.string = TRUE, seqonly = TRUE)
-cd_630 <-  unlist(cd_630) %>% toString()
+cd_630 <- unlist(cd_630) %>% toString()
 
 # mlst profiles that list the sequence of genes ID's the define an MLST 
 mlst_profiles <- read_tsv("data/mlst_profiles.txt")
-
-# establish the cd630 mlst genes knowing that cd630 is mlst 54 
-mlst_profiles_cd630 <- mlst_profiles %>% filter(ST == 54)
-cd_630_adk <- gene_key %>% filter(`ID` == mlst_profiles_cd630$adk, gene == "adk") 
-cd_630_atpA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$atpA, gene == "atpA")
-cd_630_dxr <- gene_key %>% filter(`ID` == mlst_profiles_cd630$dxr, gene == "dxr")
-cd_630_glyA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$glyA, gene == "glyA")
-cd_630_recA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$recA, gene == "recA")
-cd_630_sodA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$sodA, gene == "sodA")
-cd_630_tpi <- gene_key %>% filter(`ID` == mlst_profiles_cd630$tpi, gene == "tpi")
-
-#combine to make a list of all genes of cd630 that make up it's mlst 
-mlst_cd630 <- rbind(cd_630_adk, cd_630_atpA, cd_630_dxr, cd_630_glyA, cd_630_recA, cd_630_sodA, cd_630_tpi) 
-mlst_cd630 <- mlst_cd630[, 2:4]
-
-# function taken from https://www.r-bloggers.com/extract-different-characters-between-two-strings-of-equal-length/ 
-#that takes two strings of equal length and returns the nucleotide and position where they differ 
-list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, show.excluded = FALSE)
-{
-  if(nchar(a)!=nchar(b)) stop("Lengths of input strings differ. Please check your input.")
-  if(ignore.case)
-  {
-    a <- toupper(a)
-    b <- toupper(b)
-  }
-  split_seqs <- strsplit(c(a, b), split = "")
-  only.diff <- (split_seqs[[1]] != split_seqs[[2]])
-  only.diff[
-    (split_seqs[[1]] %in% exclude) |
-      (split_seqs[[2]] %in% exclude)
-    ] <- NA
-  diff.info<-data.frame(which(is.na(only.diff)|only.diff),
-                        split_seqs[[1]][only.diff],split_seqs[[2]][only.diff])
-  names(diff.info)<-c("position","cd630","mlst")
-  if(!show.excluded) diff.info<-na.omit(diff.info)
-  diff.info
-}
 
 ### make variant matrices ###
 # Variant matrices are tables that contain the positions where cd630 varies from the gene key for adk. 
 #the result is a long matrix of a lot of positions and gene_ids that define the possible variations from cd630 that would identify a gene_ID
 
 # cutoff is a matrix of the positions in the gene key where the genes switch from one to the next
-cutoff <- gene_key[match(unique(gene_key$gene), gene_key$gene),1] %>% t() 
-cutoff[length(cutoff)+1] <- nrow(gene_key)
+cutoff <- gene_key[match(unique(gene_key$gene), gene_key$gene), 1] %>% t() 
+cutoff[length(cutoff) + 1] <- nrow(gene_key)
 cutoff <- cutoff %>% as.matrix()
 rownames(cutoff) <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi', "end")
 cutoff <- cutoff %>% as.data.frame() %>% t()
 ## the numbers added after the variant_matrix is made is used to give the position in the whole genome and now just in reference to the gene. 
 genes <- c("adk", 'atpA', "dxr", 'glyA', 'recA','sodA','tpi')
-gene_pos <-list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269), tibble(270:319), tibble(320:390), tibble(391:473))
+gene_pos <- list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269), tibble(270:319), tibble(320:390), tibble(391:473))
 positions_df <- tibble(genes, gene_pos)
 
-make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
-  {
-    variant_matrix <- NULL 
-    # for i in the length of each mlst gene
-    for(i in gene_pos_df$gene_pos[gene_pos_df$genes==gene_name] %>% unlist() %>% unname()){
-        #get sequence for cd630 gene 
-     #### THIS IS THE ISSUE ###   temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
-        # get string difference between cd630 gene and test sequence 
-        current <- list.string.diff(toString(temp), toString(g_key[i, 4])) %>% as.matrix()
-        # add gene key information to the difference in current
-        current <- cbind(current, as.matrix(rep(g_key$ID[i], nrow(current))))
-        # add current to variant matrix
-        variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
-    }
-    #print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
-    variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos)
-    colnames(variant_matrix)[4] <- "gene_ID"
-    return(variant_matrix)
-  }
-
-new_adk <- make_variant_matrix("adk", gene_key, positions_df, genomic_pos_df)
-new_atpA <- make_variant_matrix("atpA", gene_key, positions_df, genomic_pos_df)
+# Generate Variant Matrices for each gene
+new_atpA <- make_variant_matrix("atpA", gene_key, positions_df, genomic_pos_df, sample_adk, cd_630_atpA)
+new_adk <- make_variant_matrix("adk", gene_key, positions_df, genomic_pos_df, sample_adk, cd_630_adk)
+# don't forget to add sample and cd630 version of each gene as input variables below: 
 new_dxr <- make_variant_matrix("dxr", gene_key, positions_df, genomic_pos_df)
 new_glyA <- make_variant_matrix("glyA", gene_key, positions_df, genomic_pos_df)
 new_recA <- make_variant_matrix("recA", gene_key, positions_df, genomic_pos_df)
