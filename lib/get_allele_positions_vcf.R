@@ -64,13 +64,13 @@ gene_pos <- list(tibble(1:57), tibble(58:118), tibble(119:179), tibble(180:269),
 positions_df <- tibble(genes, gene_pos)
 
 # Generate Variant Matrices for each gene
-new_atpA <- make_variant_matrix("atpA", gene_key, positions_df, genomic_pos_df, sample_adk, cd_630_atpA)
-new_adk <- make_variant_matrix("adk", gene_key, positions_df, genomic_pos_df, sample_adk, cd_630_adk)
+new_atpA <- get_gene_id("atpA", gene_key, positions_df, genomic_pos_df, sample_adk, cd_630_atpA)
+new_adk <- get_gene_id("adk", gene_key, positions_df, genomic_pos_df, sample_adk, cd_630_adk)
 # don't forget to add sample and cd630 version of each gene as input variables below: 
-new_dxr <- make_variant_matrix("dxr", gene_key, positions_df, genomic_pos_df)
-new_glyA <- make_variant_matrix("glyA", gene_key, positions_df, genomic_pos_df)
-new_recA <- make_variant_matrix("recA", gene_key, positions_df, genomic_pos_df)
-new_tpi <- make_variant_matrix("tpi", gene_key, positions_df, genomic_pos_df)
+new_dxr <- get_gene_id("dxr", gene_key, positions_df, genomic_pos_df)
+new_glyA <- get_gene_id("glyA", gene_key, positions_df, genomic_pos_df)
+new_recA <- get_gene_id("recA", gene_key, positions_df, genomic_pos_df)
+new_tpi <- get_gene_id("tpi", gene_key, positions_df, genomic_pos_df)
 
 #sodA
 ## issue, number 340 has a different length 

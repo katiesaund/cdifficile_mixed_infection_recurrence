@@ -29,32 +29,29 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
 
 
 # "atpA", gene_key, positions_df, genomic_pos_df
-make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location, gene_spec_vcf_df, cd630_seq)
+get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_location, gene_spec_vcf_df, cd630_seq)
 {
   variant_matrix <- NULL 
-  # for i in the length of each mlst gene
-  for(i in gene_pos_df$gene_pos[gene_pos_df$genes==gene_name] %>% unlist() %>% unname()){
-    #get sequence for cd630 gene 
-    #### THIS IS THE ISSUE ###   temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
-    temp <- cd630_seq$sequence
     
-    if (nrow(gene_spec_vcf_df) > 0) {
-      
-      # now we need to change the sequence becuase there are differences between the CD630 version and our sample version
+      # now we need to change the sequence becuase there are differences between the CD630 version 
+      # and our sample version
       # Use: gene_spec_vcf_df
       
-      # get string difference between cd630 gene and test sequence 
-      current <- list.string.diff(toString(temp), toString(g_key[i, 4])) %>% as.matrix()
-      # add gene key information to the difference in current
-      current <- cbind(current, as.matrix(rep(g_key$ID[i], nrow(current))))
-      # add current to variant matrix
-      variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
-    } else {
-      # same as CD630
-    }
-  }
-  #print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
-  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos)
-  colnames(variant_matrix)[4] <- "gene_ID"
-  return(variant_matrix)
+      #changing the sequence
+      temp <- cd630_seq$sequence %>% toString()
+      if(nrow(gene_spec_vcf_df) > 0){
+        for(i in 1:nrow(gene_spec_vcf_df)){
+          local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
+          substr(temp, local_str_pos, local_str_pos) <- gene_spec_vcf_df$ALT[i]
+        }
+      }
+      # find sequence in gene_key for gene of interest
+      temp_id <- gene_key %>% filter(gene == gene_name, sequence == temp) %>% pull(ID)
+      if (temp_id %>% is_empty()){
+        temp_id <- "Sequence match not found"
+      }
+      return(temp_id)
 }
+
+#write function that takes in 6/7 mlst gene ids and returns a mlst identification (ignore sodA)
+# for each mlst it should say either fulfilled, partial, not 

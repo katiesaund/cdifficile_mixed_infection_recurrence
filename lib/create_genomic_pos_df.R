@@ -1,6 +1,7 @@
 # Define starting positions for MLST genes 
 
-# TODO add comment to describe script goals/inputs/outputs
+#This script takes in the positions within the Cdiff genome where every MLST gene starts and outputs a csv files 
+#that has gene_id and gene_position information for each gene. 
 
 library(tidyverse)
 
