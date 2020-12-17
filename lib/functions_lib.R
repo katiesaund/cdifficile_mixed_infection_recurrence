@@ -29,7 +29,7 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
 
 
 # "atpA", gene_key, positions_df, genomic_pos_df
-get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_location, gene_spec_vcf_df, cd630_seq)
+get_gene_id <- function(gene_name, g_key, gene_pos_df, gene_spec_vcf_df, cd630_seq)
 {
   variant_matrix <- NULL 
     
@@ -55,3 +55,72 @@ get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_location, gene_sp
 
 #write function that takes in 6/7 mlst gene ids and returns a mlst identification (ignore sodA)
 # for each mlst it should say either fulfilled, partial, not 
+
+get_mlst_id <- function(mlst_prof, adk_id, atpA_id, dxr_id, glyA_id, recA_id, tpi_id)
+{
+  #get full match without sodA
+  full_match <- mlst_prof %>% filter(atpA == atpA_id, adk == adk_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id, tpi== tpi_id )
+  
+  # get partial matches of 5/6
+  part_match <- mlst_prof %>% 
+    filter((atpA == atpA_id & adk == adk_id & dxr == dxr_id & glyA == glyA_id & recA == recA_id ) | 
+             (atpA == atpA_id & adk == adk_id & dxr == dxr_id & glyA == glyA_id &  tpi== tpi_id ) |
+             (atpA == atpA_id & adk == adk_id &  glyA == glyA_id & recA == recA_id & tpi== tpi_id )|
+             (atpA == atpA_id & dxr == dxr_id & glyA == glyA_id & recA == recA_id & tpi== tpi_id )|
+             (adk == adk_id & dxr == dxr_id & glyA == glyA_id & recA == recA_id & tpi== tpi_id )|
+             (atpA == atpA_id & adk == adk_id & dxr == dxr_id & recA == recA_id & tpi== tpi_id ))
+  #return(full_match)
+  return(part_match)
+  
+  # mutate and filter the mlst_profiles data frame to have a column that says the number of matches to the given mlst gene ids. Filter out 0's and return
+  # data frame. 
+  
+  # what is mlst_clade?
+  
+}
+
+subset_vcf <- function(vcf_path){
+  
+  sample_vcf <- read.vcfR(vcf_path)
+  # PSM001 <- read.vcfR("data/PSM001__aln_mpileup_raw.vcf")
+  # fix is just the part of the VCF file that we need which is the information about the variants and not the information about how it was sequenced. 
+  # Fix is now called sample_variant_df
+  sample_variant_df <- as.data.frame(getFIX(sample_vcf))
+  sample_variant_df$POS <- as.numeric(as.character(sample_variant_df$POS))
+  
+  # establish the mlst variance in the sample compared to cd630 
+  # these have a list of all the variation between the gene for the test sample and cd630 and the position in the genome where that happens. 
+  # the numbers denote the positions in the genome where the NCBI defines the genes in Cdif. Example adk: https://www.ncbi.nlm.nih.gov/nuccore/NC_009089.1?report=fasta&from=113228&to=113878
+  sample_adk <- sample_variant_df %>% filter(POS >= 113228 & POS <= 113878)
+  sample_atpA <- sample_variant_df %>% filter(POS >= 3432464 & POS <= 3434242)
+  sample_dxr <- sample_variant_df %>% filter(POS >=  2466836 & POS <= 2467990)
+  sample_glyA <- sample_variant_df %>% filter(POS >= 3162737 & POS <= 3163981)
+  sample_recA <- sample_variant_df %>% filter(POS >= 1539910 & POS <= 1540956)
+  sample_sodA <- sample_variant_df %>% filter(POS >= 1889811 & POS <= 1890515)
+  sample_tpi <- sample_variant_df %>% filter(POS >= 3706953 & POS <= 3707696)
+  
+  results <- list('sample_adk' = sample_adk,
+                   'sample_atpA' = sample_atpA,
+                   'sample_dxr' = sample_dxr,
+                   'sample_glyA' = sample_glyA, 
+                   'sample_recA'=sample_recA, 
+                  'sample_recA' = sample_recA, 
+                  'sample_sodA' = sample_sodA, 
+                  'sample_tpi' = sample_tpi)
+  return(results)
+}
+
+vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, cd630_seq, mlst_prof){
+  temp <- subset_vcf(vcf_path)
+  adk <- get_gene_id("adk", g_key, gene_pos_df, temp$sample_adk, cd630_seq)
+  atpA <- get_gene_id("atpA", g_key, gene_pos_df, temp$sample_atpA, cd630_seq)
+  dxr <- get_gene_id("dxr", g_key, gene_pos_df, temp$sample_dxr, cd630_seq)
+  glyA <- get_gene_id("glyA", g_key, gene_pos_df, temp$sample_glyA, cd630_seq)
+  recA <- get_gene_id("recA", g_key, gene_pos_df, temp$sample_recA, cd630_seq)
+  #sodA<- get_gene_id("sodA", g_key, gene_pos_df, temp$sample_sodA, cd630_seq)
+  tpi <- get_gene_id("tpi", g_key, gene_pos_df, temp$sample_tpi, cd630_seq)
+  
+  mlst_df <- get_mlst_id(mlst_prof, adk_id = adk, atpA_id = atpA, dxr_id = dxr,glyA_id =  glyA,  recA_id = recA,tpi_id = tpi)
+  return(mlst_df)
+}
+
