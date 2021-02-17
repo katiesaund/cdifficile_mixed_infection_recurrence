@@ -29,16 +29,17 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
 
 
 # "atpA", gene_key, positions_df, genomic_pos_df
-get_gene_id <- function(gene_name, g_key, gene_pos_df, gene_spec_vcf_df, cd630_seq)
+## DEBUG
+get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene_spec_vcf_df, cd630_seq)
 {
   variant_matrix <- NULL 
     
-      # now we need to change the sequence becuase there are differences between the CD630 version 
+      # now we need to change the sequence because there are differences between the CD630 version 
       # and our sample version
       # Use: gene_spec_vcf_df
       
       #changing the sequence
-      temp <- cd630_seq$sequence %>% toString()
+      temp <- cd630_seq$sequence
       if(nrow(gene_spec_vcf_df) > 0){
         for(i in 1:nrow(gene_spec_vcf_df)){
           local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
@@ -58,22 +59,8 @@ get_gene_id <- function(gene_name, g_key, gene_pos_df, gene_spec_vcf_df, cd630_s
 
 get_mlst_id <- function(mlst_prof, adk_id, atpA_id, dxr_id, glyA_id, recA_id, tpi_id)
 {
-  #get full match without sodA
-  full_match <- mlst_prof %>% filter(atpA == atpA_id, adk == adk_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id, tpi== tpi_id )
-  
-  # get partial matches of 5/6
-  part_match <- mlst_prof %>% 
-    filter((atpA == atpA_id & adk == adk_id & dxr == dxr_id & glyA == glyA_id & recA == recA_id ) | 
-             (atpA == atpA_id & adk == adk_id & dxr == dxr_id & glyA == glyA_id &  tpi== tpi_id ) |
-             (atpA == atpA_id & adk == adk_id &  glyA == glyA_id & recA == recA_id & tpi== tpi_id )|
-             (atpA == atpA_id & dxr == dxr_id & glyA == glyA_id & recA == recA_id & tpi== tpi_id )|
-             (adk == adk_id & dxr == dxr_id & glyA == glyA_id & recA == recA_id & tpi== tpi_id )|
-             (atpA == atpA_id & adk == adk_id & dxr == dxr_id & recA == recA_id & tpi== tpi_id ))
-  #return(full_match)
-  return(part_match)
-  
-  # mutate and filter the mlst_profiles data frame to have a column that says the number of matches to the given mlst gene ids. Filter out 0's and return
-  # data frame. 
+ temp <- mlst_profiles %>% group_by(ST) %>% mutate(match_count = sum(c(adk == adk_id,atpA == atpA_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id, tpi== tpi_id)) ) %>% filter(match_count > 0)
+  return(temp)
   
   # what is mlst_clade?
   
@@ -112,7 +99,8 @@ subset_vcf <- function(vcf_path){
 
 vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, cd630_seq, mlst_prof){
   temp <- subset_vcf(vcf_path)
-  adk <- get_gene_id("adk", g_key, gene_pos_df, temp$sample_adk, cd630_seq)
+  adk <- get_gene_id("adk", g_key, gene_pos_df, temp$sample_adk, cd_630_adk$sequence)
+  print(head(adk))
   atpA <- get_gene_id("atpA", g_key, gene_pos_df, temp$sample_atpA, cd630_seq)
   dxr <- get_gene_id("dxr", g_key, gene_pos_df, temp$sample_dxr, cd630_seq)
   glyA <- get_gene_id("glyA", g_key, gene_pos_df, temp$sample_glyA, cd630_seq)
