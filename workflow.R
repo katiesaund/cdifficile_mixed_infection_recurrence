@@ -16,6 +16,7 @@ mlst_profiles <- read_tsv("data/mlst_profiles.txt")
 test <- vcf_to_mlst("data/PSM001__aln_mpileup_raw.vcf", gene_key, genomic_pos_df, cd_630, mlst_profiles)
 
 
-#psm170 and show that they are different.
 
+# NOTES: 
+#psm170 and show that they are different.
 # write a read_me to explain how this works at the moment and outline how to use this for the bigger picture 

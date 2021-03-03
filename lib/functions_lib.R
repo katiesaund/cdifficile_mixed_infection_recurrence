@@ -1,11 +1,13 @@
 library(vcfR)
 library(tidyverse)
 library(seqinr)
-
-
+#NOTES: 
+## write function that takes in 6/7 mlst gene ids and returns a mlst identification (ignore sodA)
+# for each mlst it should say either fulfilled, partial, not 
+# what is mlst_clade?
 # Functions 
 # function taken from https://www.r-bloggers.com/extract-different-characters-between-two-strings-of-equal-length/ 
-#that takes two strings of equal length and returns the nucleotide and position where they differ 
+#This function takes two strings of equal length and returns the nucleotide and position where they differ 
 list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, show.excluded = FALSE)
 {
   if(nchar(a)!=nchar(b)) stop("Lengths of input strings differ. Please check your input.")
@@ -32,6 +34,7 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
 ## DEBUG
 # get_gene_id is a function that inputs the gene name if interest (1 of 7 MLST genes) and the gene specific vcf for the gene of interest 
 # and outputs the gene id associated with MLST. 
+
 #gene_name -> a string containing one of seven MLST gene names
 # g_key -> always the same, is a df containing gene ids, gene names and gene sequences for all identified genes in MLST sequencing 
 # gene_pos_df -> always the same, a list containing gene names and the positions within the gene key key as a sequence of numbers
@@ -62,24 +65,20 @@ get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene
       return(temp_id)
 }
 
-#write function that takes in 6/7 mlst gene ids and returns a mlst identification (ignore sodA)
-# for each mlst it should say either fulfilled, partial, not 
-
+### GET MLST ID ###
+# This function inputs the the mlst profiles with gene ids mapping to mlsts and outputs the mlst identification. 
 get_mlst_id <- function(mlst_prof, adk_id, atpA_id, dxr_id, glyA_id, recA_id, tpi_id)
 {
  temp <- mlst_profiles %>% group_by(ST) %>% mutate(match_count = sum(c(adk == adk_id,atpA == atpA_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id, tpi== tpi_id)) ) %>% filter(match_count > 0)
   return(temp)
   
-  # what is mlst_clade?
-  
 }
-
+### Subset_vcf ### 
+# This function inputs the vcf and outputs the subset of each gene within the genome. 
+# The result is seven genes from the sample of interest each with it's own vcf. 
 subset_vcf <- function(vcf_path){
   
   sample_vcf <- read.vcfR(vcf_path)
-  # PSM001 <- read.vcfR("data/PSM001__aln_mpileup_raw.vcf")
-  # fix is just the part of the VCF file that we need which is the information about the variants and not the information about how it was sequenced. 
-  # Fix is now called sample_variant_df
   sample_variant_df <- as.data.frame(getFIX(sample_vcf))
   sample_variant_df$POS <- as.numeric(as.character(sample_variant_df$POS))
   
@@ -104,6 +103,11 @@ subset_vcf <- function(vcf_path){
                   'sample_tpi' = sample_tpi)
   return(results)
 }
+
+### VCF to MLST ###
+### Main wrapper function ###
+# This function inputs the vcf for the sample of interest and runs get_gene_id function on each gene. 
+# It outputs a dataframe with the mlst identification if possible. 
 
 vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, cd630_seq, mlst_prof){
   temp <- subset_vcf(vcf_path)
