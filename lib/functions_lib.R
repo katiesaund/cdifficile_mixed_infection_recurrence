@@ -28,8 +28,16 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
 }
 
 
-# "atpA", gene_key, positions_df, genomic_pos_df
+### GET GENE ID ###
 ## DEBUG
+# get_gene_id is a function that inputs the gene name if interest (1 of 7 MLST genes) and the gene specific vcf for the gene of interest 
+# and outputs the gene id associated with MLST. 
+#gene_name -> a string containing one of seven MLST gene names
+# g_key -> always the same, is a df containing gene ids, gene names and gene sequences for all identified genes in MLST sequencing 
+# gene_pos_df -> always the same, a list containing gene names and the positions within the gene key key as a sequence of numbers
+# genomic_position_df -> a sequence of numbers containing the positions within the cdif genome where each gene starts
+# gene_spec_vcf_df -> the gene of interest vcf for the sample of interest
+# cd630_seq -> the cd630 reference genome sequence
 get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene_spec_vcf_df, cd630_seq)
 {
   variant_matrix <- NULL 
