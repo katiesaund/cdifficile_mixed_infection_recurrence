@@ -1,7 +1,9 @@
 # 2019-11-08
 # Bailey Garb 
 
+# This script was finalized on 2021-03-06
 # script to make gene key for MLST
+# A gene key is defined as list of sequences and their corresponding gene id that maps to an MLST identifcation. 
 
 # Cd630 MLST is 54 
 

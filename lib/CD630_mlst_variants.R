@@ -10,74 +10,17 @@
 library(vcfR)
 library(tidyverse)
 library(seqinr)
+source("lib/functions_lib.R")
+source("lib/save_CD630_mlst_gene_sequences.R")
 
 # Load in cd_630 fasta file. 
 cd_630 <- read.fasta("data/cdiff_630.fasta", as.string = TRUE, seqonly = TRUE)
-
-# mlst profiles that list the sequence of genes ID's the define an MLST 
-# mlst_profiles <- read_tsv("data/mlst_profiles.txt")
-# 
-# # matrix with the gene, gene id, and sequence for each of the MLST genes 
-# gene_key <- read.csv("data/gene_key.csv")
-# 
-# # establish the cd630 mlst genes knowing that cd630 is mlst 54 
-# mlst_profiles_cd630 <- mlst_profiles %>% filter(ST == 54)
-# cd_630_adk <- gene_key %>% filter(`ID` == mlst_profiles_cd630$adk, gene == "adk") 
-# cd_630_atpA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$atpA, gene == "atpA")
-# cd_630_dxr <- gene_key %>% filter(`ID` == mlst_profiles_cd630$dxr, gene == "dxr")
-# cd_630_glyA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$glyA, gene == "glyA")
-# cd_630_recA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$recA, gene == "recA")
-# cd_630_sodA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$sodA, gene == "sodA")
-# cd_630_tpi <- gene_key %>% filter(`ID` == mlst_profiles_cd630$tpi, gene == "tpi")
-
-# Define starting positions for MLST genes 
-adk_pos <- 113228
-atpA_pos <- 3432464
-dxr_pos <- 2466836
-glyA_pos <- 3162737
-recA_pos <- 1539910
-sodA_pos <- 1889811
-tpi_pos <- 3706953
-
-#Make positions df with make of gene corresponding to the starting position of the gene in cd630 genome.
-#gene_id is the gene name and gene_pos is the starting position. 
-genomic_pos_df <- as.data.frame(matrix(0, nrow = 7, ncol = 2))
-genomic_pos_df[, 1] <- c("adk", "atpA", "dxr", "glyA", "recA", "sodA", "tpi")
-genomic_pos_df[, 2] <- c(adk_pos, 
-                         atpA_pos, 
-                         dxr_pos, 
-                         glyA_pos, 
-                         recA_pos, 
-                         sodA_pos, 
-                         tpi_pos) 
-colnames(genomic_pos_df) <- c("gene_id", "gene_pos")
+genomic_pos_df <- read.csv("data/genomic_pos.csv")
 
 #combine to make a list of all genes of cd630 that make up it's mlst 
 mlst_cd630 <- rbind(cd_630_adk, cd_630_atpA, cd_630_dxr, cd_630_glyA, cd_630_recA, cd_630_sodA, cd_630_tpi) 
 mlst_cd630 <- mlst_cd630[, 2:4]
 
-# function taken from https://www.r-bloggers.com/extract-different-characters-between-two-strings-of-equal-length/ 
-#that takes two strings of equal length and returns the nucleotide and position where they differ 
-list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, show.excluded = FALSE)
-{
-  if(nchar(a)!=nchar(b)) stop("Lengths of input strings differ. Please check your input.")
-  if(ignore.case)
-  {
-    a <- toupper(a)
-    b <- toupper(b)
-  }
-  split_seqs <- strsplit(c(a, b), split = "")
-  only.diff <- (split_seqs[[1]] != split_seqs[[2]])
-  only.diff[
-    (split_seqs[[1]] %in% exclude) |
-      (split_seqs[[2]] %in% exclude)
-  ] <- NA
-  diff.info<-data.frame(which(is.na(only.diff)|only.diff),
-                        split_seqs[[1]][only.diff],split_seqs[[2]][only.diff])
-  names(diff.info)<-c("position","cd630","mlst")
-  if(!show.excluded) diff.info<-na.omit(diff.info)
-  diff.info
-}
 
 ### make variant matrices ###
 # Variant matrices are tables that contain the positions where cd630 varies from the gene key for adk. 
@@ -195,3 +138,4 @@ sodA_gene_key <- gene_key %>% filter(gene == "sodA")
 sodA_gene_key$length = sodA_gene_key$sequence %>% str_length()
 sodA_gene_key$length = as.numeric(sodA_gene_key$length)
 sodA_gaps <- filter(sodA_gene_key, length == 449)
+

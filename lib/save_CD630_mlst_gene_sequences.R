@@ -1,3 +1,7 @@
+# Bailey Garb
+# Finalized on 2021-03-06
+# This script generates gene id profiles for the reference genome cd630. 
+
 library(tidyverse)
 mlst_profiles <- read_tsv("data/mlst_profiles.txt")
 
@@ -13,3 +17,4 @@ cd_630_glyA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$glyA, gene == "gl
 cd_630_recA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$recA, gene == "recA")
 cd_630_sodA <- gene_key %>% filter(`ID` == mlst_profiles_cd630$sodA, gene == "sodA")
 cd_630_tpi <- gene_key %>% filter(`ID` == mlst_profiles_cd630$tpi, gene == "tpi")
+

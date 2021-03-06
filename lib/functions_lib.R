@@ -1,10 +1,12 @@
 library(vcfR)
 library(tidyverse)
 library(seqinr)
+
 #NOTES: 
 ## write function that takes in 6/7 mlst gene ids and returns a mlst identification (ignore sodA)
 # for each mlst it should say either fulfilled, partial, not 
 # what is mlst_clade?
+
 # Functions 
 # function taken from https://www.r-bloggers.com/extract-different-characters-between-two-strings-of-equal-length/ 
 #This function takes two strings of equal length and returns the nucleotide and position where they differ 
@@ -29,6 +31,26 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
   diff.info
 }
 
+make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
+{
+  variant_matrix <- NULL 
+  # for i in the length of each mlst gene
+  for(i in gene_pos_df$gene_pos[gene_pos_df$genes==gene_name] %>% unlist() %>% unname()){
+    #get sequence for cd630 gene 
+    temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
+    # get string difference between cd630 gene and test sequence 
+    current <- list.string.diff(toString(temp), toString(g_key[i, 4])) %>% as.matrix()
+    # add gene key information to the difference in current
+    current <- cbind(current, as.matrix(rep(g_key$ID[i], nrow(current))))
+    # add current to variant matrix
+    variant_matrix <- rbind(variant_matrix, as.matrix(current)) %>% as.data.frame()
+  }
+  #print(as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos))
+  variant_matrix$position <- as.vector(as.numeric(as.character(variant_matrix$position))) + genomic_location %>% filter(genes == gene_name) %>% pull(gene_pos)
+  colnames(variant_matrix)[4] <- "gene_ID"
+  return(variant_matrix)
+}
+
 
 ### GET GENE ID ###
 ## DEBUG
@@ -50,7 +72,7 @@ get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene
       # Use: gene_spec_vcf_df
       
       #changing the sequence
-      temp <- cd630_seq$sequence
+      temp <- cd630_seq #$sequence
       if(nrow(gene_spec_vcf_df) > 0){
         for(i in 1:nrow(gene_spec_vcf_df)){
           local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
@@ -111,14 +133,13 @@ subset_vcf <- function(vcf_path){
 
 vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, cd630_seq, mlst_prof){
   temp <- subset_vcf(vcf_path)
-  adk <- get_gene_id("adk", g_key, gene_pos_df, temp$sample_adk, cd_630_adk$sequence)
-  print(head(adk))
-  atpA <- get_gene_id("atpA", g_key, gene_pos_df, temp$sample_atpA, cd630_seq)
-  dxr <- get_gene_id("dxr", g_key, gene_pos_df, temp$sample_dxr, cd630_seq)
-  glyA <- get_gene_id("glyA", g_key, gene_pos_df, temp$sample_glyA, cd630_seq)
-  recA <- get_gene_id("recA", g_key, gene_pos_df, temp$sample_recA, cd630_seq)
-  #sodA<- get_gene_id("sodA", g_key, gene_pos_df, temp$sample_sodA, cd630_seq)
-  tpi <- get_gene_id("tpi", g_key, gene_pos_df, temp$sample_tpi, cd630_seq)
+  adk <- get_gene_id("adk", g_key, gene_pos_df, genomic_pos_df, temp$sample_adk, cd_630)
+  atpA <- get_gene_id("atpA", g_key, gene_pos_df, genomic_pos_df, temp$sample_atpA, cd630_seq)
+  dxr <- get_gene_id("dxr", g_key, gene_pos_df, genomic_pos_df, temp$sample_dxr, cd630_seq)
+  glyA <- get_gene_id("glyA", g_key, gene_pos_df, genomic_pos_df, temp$sample_glyA, cd630_seq)
+  recA <- get_gene_id("recA", g_key, gene_pos_df, genomic_pos_df, temp$sample_recA, cd630_seq)
+  #sodA<- get_gene_id("sodA", g_key, gene_pos_df, genomic_pos_df, temp$sample_sodA, cd630_seq)
+  tpi <- get_gene_id("tpi", g_key, gene_pos_df, genomic_pos_df, temp$sample_tpi, cd630_seq)
   
   mlst_df <- get_mlst_id(mlst_prof, adk_id = adk, atpA_id = atpA, dxr_id = dxr,glyA_id =  glyA,  recA_id = recA,tpi_id = tpi)
   return(mlst_df)

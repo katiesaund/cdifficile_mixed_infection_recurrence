@@ -4,7 +4,7 @@
 # PSM
 # The mlst definition of the gene is not the whole genome
 # MLST is defines by a unique set of 7 gene ID 
-# A gene ID is a specific unique squence for one of the seven MLST genes 
+# A gene ID is a specific unique sequence for one of the seven MLST genes 
 #
 #
 # Current issue. Assumed that all variantes mapped to a MLST but that doesn't seem to true. It is possible that there is a non-informant variant that doesn't define the mslt. Example: adk for PSM170 is defined as the same as 
