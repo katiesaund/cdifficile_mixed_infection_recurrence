@@ -1,7 +1,7 @@
 library(vcfR)
 library(tidyverse)
 library(seqinr)
-
+source('~/thesis/cdifficile_mixed_infection_recurrence/lib/gene_positions.R')
 #NOTES: 
 ## write function that takes in 6/7 mlst gene ids and returns a mlst identification (ignore sodA)
 # for each mlst it should say either fulfilled, partial, not 
@@ -65,18 +65,25 @@ make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
 # cd630_seq -> the cd630 reference genome sequence
 get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene_spec_vcf_df, cd630_seq)
 {
-  variant_matrix <- NULL 
-    
-      # now we need to change the sequence because there are differences between the CD630 version 
+    print(gene_name)
+       # now we need to change the sequence because there are differences between the CD630 version 
       # and our sample version
       # Use: gene_spec_vcf_df
-      
       #changing the sequence
-      temp <- cd630_seq #$sequence
+     
+  # the cd 630 sequence for the specific gene. 
+    temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
       if(nrow(gene_spec_vcf_df) > 0){
         for(i in 1:nrow(gene_spec_vcf_df)){
           local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
-          substr(temp, local_str_pos, local_str_pos) <- gene_spec_vcf_df$ALT[i]
+          substr(temp, local_str_pos, local_str_pos) <- tolower(gene_spec_vcf_df$ALT[i])
+          print(tolower(gene_spec_vcf_df$ALT[i]))
+          print(temp)
+          #print(local_str_pos)
+          #print('position')
+          #print(gene_spec_vcf_df$POS[i])
+          #print("genomic start")
+          #print(genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name])
         }
       }
       # find sequence in gene_key for gene of interest
@@ -91,7 +98,7 @@ get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene
 # This function inputs the the mlst profiles with gene ids mapping to mlsts and outputs the mlst identification. 
 get_mlst_id <- function(mlst_prof, adk_id, atpA_id, dxr_id, glyA_id, recA_id, tpi_id)
 {
- temp <- mlst_profiles %>% group_by(ST) %>% mutate(match_count = sum(c(adk == adk_id,atpA == atpA_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id, tpi== tpi_id)) ) %>% filter(match_count > 0)
+ temp <- mlst_profiles %>% group_by(ST) %>% mutate(match_count = sum(c(adk == adk_id,atpA == atpA_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id, tpi== tpi_id)) ) %>% filter(match_count > 1) %>% arrange(desc(match_count))
   return(temp)
   
 }
@@ -107,13 +114,13 @@ subset_vcf <- function(vcf_path){
   # establish the mlst variance in the sample compared to cd630 
   # these have a list of all the variation between the gene for the test sample and cd630 and the position in the genome where that happens. 
   # the numbers denote the positions in the genome where the NCBI defines the genes in Cdif. Example adk: https://www.ncbi.nlm.nih.gov/nuccore/NC_009089.1?report=fasta&from=113228&to=113878
-  sample_adk <- sample_variant_df %>% filter(POS >= 113228 & POS <= 113878)
-  sample_atpA <- sample_variant_df %>% filter(POS >= 3432464 & POS <= 3434242)
-  sample_dxr <- sample_variant_df %>% filter(POS >=  2466836 & POS <= 2467990)
-  sample_glyA <- sample_variant_df %>% filter(POS >= 3162737 & POS <= 3163981)
-  sample_recA <- sample_variant_df %>% filter(POS >= 1539910 & POS <= 1540956)
-  sample_sodA <- sample_variant_df %>% filter(POS >= 1889811 & POS <= 1890515)
-  sample_tpi <- sample_variant_df %>% filter(POS >= 3706953 & POS <= 3707696)
+  sample_adk <- sample_variant_df %>% filter(POS >= adk_start & POS <= adk_end)
+  sample_atpA <- sample_variant_df %>% filter(POS >= atpA_start & POS <= atpA_end)
+  sample_dxr <- sample_variant_df %>% filter(POS >=  dxr_start & POS <= dxr_end)
+  sample_glyA <- sample_variant_df %>% filter(POS >= glyA_start & POS <= glyA_end)
+  sample_recA <- sample_variant_df %>% filter(POS >= recA_start & POS <= recA_end)
+  sample_sodA <- sample_variant_df %>% filter(POS >= sodA_start& POS <= sodA_end)
+  sample_tpi <- sample_variant_df %>% filter(POS >= tpi_start & POS <= tpi_end)
   
   results <- list('sample_adk' = sample_adk,
                    'sample_atpA' = sample_atpA,
@@ -138,10 +145,19 @@ vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, cd630_seq, mlst_prof){
   dxr <- get_gene_id("dxr", g_key, gene_pos_df, genomic_pos_df, temp$sample_dxr, cd630_seq)
   glyA <- get_gene_id("glyA", g_key, gene_pos_df, genomic_pos_df, temp$sample_glyA, cd630_seq)
   recA <- get_gene_id("recA", g_key, gene_pos_df, genomic_pos_df, temp$sample_recA, cd630_seq)
-  #sodA<- get_gene_id("sodA", g_key, gene_pos_df, genomic_pos_df, temp$sample_sodA, cd630_seq)
+  sodA<- get_gene_id("sodA", g_key, gene_pos_df, genomic_pos_df, temp$sample_sodA, cd630_seq)
   tpi <- get_gene_id("tpi", g_key, gene_pos_df, genomic_pos_df, temp$sample_tpi, cd630_seq)
   
   mlst_df <- get_mlst_id(mlst_prof, adk_id = adk, atpA_id = atpA, dxr_id = dxr,glyA_id =  glyA,  recA_id = recA,tpi_id = tpi)
+  print(adk)
+  print(atpA)
+  print(atpA)
+  print(dxr)
+  print(glyA)
+  print(recA)
+  print(sodA)
+  print(tpi)
   return(mlst_df)
+  
 }
 

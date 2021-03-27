@@ -13,7 +13,7 @@ cd_630 <- unlist(cd_630) %>% toString()
 # mlst profiles that list the sequence of genes ID's the define an MLST 
 mlst_profiles <- read_tsv("data/mlst_profiles.txt")
 
-test <- vcf_to_mlst("data/PSM001__aln_mpileup_raw.vcf", gene_key, genomic_pos_df, cd_630, mlst_profiles)
+PSM001_mlst <- vcf_to_mlst("data/PSM001__aln_mpileup_raw.vcf", gene_key, genomic_pos_df, cd_630, mlst_profiles)
 
 
 
