@@ -10,15 +10,15 @@ source('~/thesis/cdifficile_mixed_infection_recurrence/lib/gene_positions.R')
 # Functions 
 # function taken from https://www.r-bloggers.com/extract-different-characters-between-two-strings-of-equal-length/ 
 #This function takes two strings of equal length and returns the nucleotide and position where they differ 
-list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, show.excluded = FALSE)
+list.string.diff <- function(cd630, sample, exclude = c("-", "?"), ignore.case = TRUE, show.excluded = FALSE)
 {
-  if(nchar(a)!=nchar(b)) stop("Lengths of input strings differ. Please check your input.")
+  if(nchar(cd630)!=nchar(sample)) stop("Lengths of input strings differ. Please check your input.")
   if(ignore.case)
   {
-    a <- toupper(a)
-    b <- toupper(b)
+    cd630 <- toupper(cd630)
+    sample <- toupper(sample)
   }
-  split_seqs <- strsplit(c(a, b), split = "")
+  split_seqs <- strsplit(c(cd630, sample), split = "")
   only.diff <- (split_seqs[[1]] != split_seqs[[2]])
   only.diff[
     (split_seqs[[1]] %in% exclude) |
@@ -26,7 +26,7 @@ list.string.diff <- function(a, b, exclude = c("-", "?"), ignore.case = TRUE, sh
     ] <- NA
   diff.info<-data.frame(which(is.na(only.diff)|only.diff),
                         split_seqs[[1]][only.diff],split_seqs[[2]][only.diff])
-  names(diff.info)<-c("position","cd630","mlst")
+  names(diff.info)<-c("position","cd630","alternative")
   if(!show.excluded) diff.info<-na.omit(diff.info)
   diff.info
 }
@@ -63,42 +63,48 @@ make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
 # genomic_position_df -> a sequence of numbers containing the positions within the cdif genome where each gene starts
 # gene_spec_vcf_df -> the gene of interest vcf for the sample of interest
 # cd630_seq -> the cd630 reference genome sequence
-get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene_spec_vcf_df, cd630_seq)
-{
-    print(gene_name)
-       # now we need to change the sequence because there are differences between the CD630 version 
-      # and our sample version
-      # Use: gene_spec_vcf_df
-      #changing the sequence
-     
-  # the cd 630 sequence for the specific gene. 
+get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene_spec_vcf_df)
+  {
+    # now we need to change the sequence because there are differences between the CD630 version 
+    # and our sample version
+    # Use: gene_spec_vcf_df
+       
+    # the cd 630 sequence for the specific gene. 
     temp <- eval(as.name(paste("cd_630_",gene_name, sep = "")))$sequence
-      if(nrow(gene_spec_vcf_df) > 0){
-        for(i in 1:nrow(gene_spec_vcf_df)){
-          local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
-          substr(temp, local_str_pos, local_str_pos) <- tolower(gene_spec_vcf_df$ALT[i])
-          print(tolower(gene_spec_vcf_df$ALT[i]))
-          print(temp)
-          #print(local_str_pos)
-          #print('position')
-          #print(gene_spec_vcf_df$POS[i])
-          #print("genomic start")
-          #print(genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name])
+        if(nrow(gene_spec_vcf_df) > 0 && (gene_name == "atpA")){
+          for(i in 1:nrow(gene_spec_vcf_df)){
+            local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
+            substr(temp, local_str_pos, local_str_pos) <- chartr("atgc","tgca",tolower(gene_spec_vcf_df$ALT[i]))
+          }
         }
-      }
-      # find sequence in gene_key for gene of interest
-      temp_id <- gene_key %>% filter(gene == gene_name, sequence == temp) %>% pull(ID)
-      if (temp_id %>% is_empty()){
-        temp_id <- "Sequence match not found"
-      }
-      return(temp_id)
-}
+        else if(nrow(gene_spec_vcf_df) > 0 && ((gene_name == "dxr") |(gene_name == "glyA") | (gene_name == "sodA") | (gene_name == "tpi"))){
+          for(i in 1:nrow(gene_spec_vcf_df)){
+            local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
+            substr(temp, local_str_pos, local_str_pos) <- chartr("atgc","tacg", tolower(gene_spec_vcf_df$ALT[i]))
+            
+          }
+        }
+        else if(nrow(gene_spec_vcf_df) > 0 ){
+            for(i in 1:nrow(gene_spec_vcf_df)){
+              local_str_pos <- gene_spec_vcf_df$POS[i] - genomic_pos_df$gene_pos[genomic_pos_df$gene_id==gene_name]
+              substr(temp, local_str_pos, local_str_pos) <- tolower(gene_spec_vcf_df$ALT[i])
+  
+          }
+        }
+        # find sequence in gene_key for gene of interest
+        temp_id <- gene_key %>% filter(gene == gene_name, sequence == temp) %>% pull(ID)
+        if (temp_id %>% is_empty()){
+          temp_id <- "Sequence match not found"
+        }
+        
+        return(temp_id)
+  }
 
 ### GET MLST ID ###
 # This function inputs the the mlst profiles with gene ids mapping to mlsts and outputs the mlst identification. 
-get_mlst_id <- function(mlst_prof, adk_id, atpA_id, dxr_id, glyA_id, recA_id, tpi_id)
+get_mlst_id <- function(mlst_prof, adk_id, atpA_id, dxr_id, glyA_id, recA_id, sodA_id, tpi_id)
 {
- temp <- mlst_profiles %>% group_by(ST) %>% mutate(match_count = sum(c(adk == adk_id,atpA == atpA_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id, tpi== tpi_id)) ) %>% filter(match_count > 1) %>% arrange(desc(match_count))
+ temp <- mlst_profiles %>% group_by(ST) %>% mutate(match_count = sum(c(adk == adk_id,atpA == atpA_id, dxr == dxr_id, glyA == glyA_id, recA == recA_id,sodA == sodA_id, tpi== tpi_id)) ) %>% filter(match_count > 1) %>% arrange(desc(match_count))
   return(temp)
   
 }
@@ -138,25 +144,24 @@ subset_vcf <- function(vcf_path){
 # This function inputs the vcf for the sample of interest and runs get_gene_id function on each gene. 
 # It outputs a dataframe with the mlst identification if possible. 
 
-vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, cd630_seq, mlst_prof){
+vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, mlst_prof){
   temp <- subset_vcf(vcf_path)
-  adk <- get_gene_id("adk", g_key, gene_pos_df, genomic_pos_df, temp$sample_adk, cd_630)
-  atpA <- get_gene_id("atpA", g_key, gene_pos_df, genomic_pos_df, temp$sample_atpA, cd630_seq)
-  dxr <- get_gene_id("dxr", g_key, gene_pos_df, genomic_pos_df, temp$sample_dxr, cd630_seq)
-  glyA <- get_gene_id("glyA", g_key, gene_pos_df, genomic_pos_df, temp$sample_glyA, cd630_seq)
-  recA <- get_gene_id("recA", g_key, gene_pos_df, genomic_pos_df, temp$sample_recA, cd630_seq)
-  sodA<- get_gene_id("sodA", g_key, gene_pos_df, genomic_pos_df, temp$sample_sodA, cd630_seq)
-  tpi <- get_gene_id("tpi", g_key, gene_pos_df, genomic_pos_df, temp$sample_tpi, cd630_seq)
+  adk <- get_gene_id("adk", g_key, gene_pos_df, genomic_pos_df, temp$sample_adk)
+  print(c("adk:",adk))
+  atpA <- get_gene_id("atpA", g_key, gene_pos_df, genomic_pos_df, temp$sample_atpA)
+  print(c('atpA:', atpA))
+  dxr <- get_gene_id("dxr", g_key, gene_pos_df, genomic_pos_df, temp$sample_dxr)
+  print(c('dxr:', dxr))
+  glyA <- get_gene_id("glyA", g_key, gene_pos_df, genomic_pos_df, temp$sample_glyA)
+  print(c('glyA:', glyA))
+  recA <- get_gene_id("recA", g_key, gene_pos_df, genomic_pos_df, temp$sample_recA)
+  print(c('recA:', recA))
+  sodA<- get_gene_id("sodA", g_key, gene_pos_df, genomic_pos_df, temp$sample_sodA)
+  print(c('sodA:', sodA))
+  tpi <- get_gene_id("tpi", g_key, gene_pos_df, genomic_pos_df, temp$sample_tpi)  
+  print(c('tpi:', tpi))
   
-  mlst_df <- get_mlst_id(mlst_prof, adk_id = adk, atpA_id = atpA, dxr_id = dxr,glyA_id =  glyA,  recA_id = recA,tpi_id = tpi)
-  print(adk)
-  print(atpA)
-  print(atpA)
-  print(dxr)
-  print(glyA)
-  print(recA)
-  print(sodA)
-  print(tpi)
+  mlst_df <- get_mlst_id(mlst_prof, adk_id = adk, atpA_id = atpA, dxr_id = dxr,glyA_id =  glyA,  recA_id = recA, sodA_id = sodA, tpi_id = tpi)
   return(mlst_df)
   
 }
