@@ -7,7 +7,7 @@ atpA_start <-  4061001 # changed from: 4061331. Changes based on list.string.dif
 atpA_end <- 4061885
 
 dxr_start <- 2467243 # changed from 2467202 
-dxr_end <- 2467612
+dxr_end <- 2467650 # changed 3/31
 
 glyA_start <- 3163193 # changed from 3162858  
 glyA_end <- 3163372

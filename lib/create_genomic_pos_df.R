@@ -5,7 +5,7 @@
 
 library(tidyverse)
 # Cd 630: https://www.ncbi.nlm.nih.gov/nuccore/AM180355.1
-source('~/thesis/cdifficile_mixed_infection_recurrence/lib/gene_positions.R')
+source('lib/gene_positions.R')
 
 
 #Make positions df with make of gene corresponding to the starting position of the gene in cd630 genome.

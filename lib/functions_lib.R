@@ -1,7 +1,7 @@
 library(vcfR)
 library(tidyverse)
 library(seqinr)
-source('~/thesis/cdifficile_mixed_infection_recurrence/lib/gene_positions.R')
+source('lib/gene_positions.R')
 #NOTES: 
 ## write function that takes in 6/7 mlst gene ids and returns a mlst identification (ignore sodA)
 # for each mlst it should say either fulfilled, partial, not 
@@ -53,7 +53,7 @@ make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
 
 
 ### GET GENE ID ###
-## DEBUG
+
 # get_gene_id is a function that inputs the gene name if interest (1 of 7 MLST genes) and the gene specific vcf for the gene of interest 
 # and outputs the gene id associated with MLST. 
 
@@ -63,7 +63,7 @@ make_variant_matrix <- function(gene_name, g_key, gene_pos_df, genomic_location)
 # genomic_position_df -> a sequence of numbers containing the positions within the cdif genome where each gene starts
 # gene_spec_vcf_df -> the gene of interest vcf for the sample of interest
 # cd630_seq -> the cd630 reference genome sequence
-get_gene_id <- function(gene_name, g_key, gene_pos_df, genomic_position_df, gene_spec_vcf_df)
+get_gene_id <- function(gene_name, g_key,genomic_position_df, gene_spec_vcf_df)
   {
     # now we need to change the sequence because there are differences between the CD630 version 
     # and our sample version
@@ -144,25 +144,27 @@ subset_vcf <- function(vcf_path){
 # This function inputs the vcf for the sample of interest and runs get_gene_id function on each gene. 
 # It outputs a dataframe with the mlst identification if possible. 
 
-vcf_to_mlst <- function(vcf_path, g_key, gene_pos_df, mlst_prof){
+vcf_to_mlst <- function(vcf_path, g_key,genomic_pos_df, mlst_prof){
+
+  
   temp <- subset_vcf(vcf_path)
-  adk <- get_gene_id("adk", g_key, gene_pos_df, genomic_pos_df, temp$sample_adk)
+  adk <- get_gene_id("adk", g_key,genomic_pos_df, temp$sample_adk)
   print(c("adk:",adk))
-  atpA <- get_gene_id("atpA", g_key, gene_pos_df, genomic_pos_df, temp$sample_atpA)
+  atpA <- get_gene_id("atpA", g_key, genomic_pos_df, temp$sample_atpA)
   print(c('atpA:', atpA))
-  dxr <- get_gene_id("dxr", g_key, gene_pos_df, genomic_pos_df, temp$sample_dxr)
+  dxr <- get_gene_id("dxr", g_key, enomic_pos_df, temp$sample_dxr)
   print(c('dxr:', dxr))
-  glyA <- get_gene_id("glyA", g_key, gene_pos_df, genomic_pos_df, temp$sample_glyA)
+  glyA <- get_gene_id("glyA", g_key,genomic_pos_df, temp$sample_glyA)
   print(c('glyA:', glyA))
-  recA <- get_gene_id("recA", g_key, gene_pos_df, genomic_pos_df, temp$sample_recA)
+  recA <- get_gene_id("recA", g_key,genomic_pos_df, temp$sample_recA)
   print(c('recA:', recA))
-  sodA<- get_gene_id("sodA", g_key, gene_pos_df, genomic_pos_df, temp$sample_sodA)
+  sodA<- get_gene_id("sodA", g_key, genomic_pos_df, temp$sample_sodA)
   print(c('sodA:', sodA))
-  tpi <- get_gene_id("tpi", g_key, gene_pos_df, genomic_pos_df, temp$sample_tpi)  
+  tpi <- get_gene_id("tpi", g_key, genomic_pos_df, temp$sample_tpi)  
   print(c('tpi:', tpi))
   
   mlst_df <- get_mlst_id(mlst_prof, adk_id = adk, atpA_id = atpA, dxr_id = dxr,glyA_id =  glyA,  recA_id = recA, sodA_id = sodA, tpi_id = tpi)
-  return(mlst_df)
-  
+  print(c('MLST:', mlst_df$ST[1]))
+  return(mlst_df$ST[1])
 }
 
